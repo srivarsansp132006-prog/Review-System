@@ -10,16 +10,22 @@ class SimpleReviewHandler(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-        # Build list with an edit form next to each review
+        # Build list with both Edit and Delete forms
         items_html = ""
         for r in reviews:
             items_html += f"""
             <li style="margin-bottom: 12px;">
                 [ID: {r['id']}] <b>{r['author']}</b>: {r['comment']}
+                <!-- Edit Review -->
                 <form method="POST" action="/edit" style="display:inline; margin-left: 10px;">
                     <input type="hidden" name="id" value="{r['id']}" />
                     <input type="text" name="new_comment" placeholder="Update review..." required />
                     <button type="submit">Update</button>
+                </form>
+                <!-- Delete Review (v3 Feature) -->
+                <form method="POST" action="/delete" style="display:inline; margin-left: 6px;">
+                    <input type="hidden" name="id" value="{r['id']}" />
+                    <button type="submit" style="color:red;">Delete</button>
                 </form>
             </li>
             """
@@ -30,10 +36,10 @@ class SimpleReviewHandler(BaseHTTPRequestHandler):
         html = f"""
         <!DOCTYPE html>
         <html>
-        <head><title>Review System - v2</title></head>
+        <head><title>Review System - v3</title></head>
         <body style="font-family: Arial; padding: 25px;">
-            <h2>Review System - v2</h2>
-            <p><b>Features:</b> Add Review + Edit Review</p>
+            <h2>Review System - v3</h2>
+            <p><b>Features:</b> Add Review + Edit Review + Delete Review</p>
             <form method="POST" action="/add">
                 <input type="text" name="author" placeholder="Your Name" required /><br><br>
                 <input type="text" name="comment" placeholder="Your Review" required /><br><br>
@@ -48,7 +54,7 @@ class SimpleReviewHandler(BaseHTTPRequestHandler):
         self.wfile.write(html.encode('utf-8'))
 
     def do_POST(self):
-        global counter
+        global counter, reviews
         length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(length).decode('utf-8')
         params = urllib.parse.parse_qs(body)
@@ -67,6 +73,10 @@ class SimpleReviewHandler(BaseHTTPRequestHandler):
                 if r['id'] == review_id:
                     r['comment'] = new_comment
                     break
+
+        elif self.path == '/delete':
+            review_id = int(params.get('id', ['0'])[0])
+            reviews = [r for r in reviews if r['id'] != review_id]
 
         self.send_response(303)
         self.send_header('Location', '/')
